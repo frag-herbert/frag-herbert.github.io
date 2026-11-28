@@ -30,8 +30,9 @@ export const DATENSCHUTZ = `
     Home Assistant, ohne Umweg. Die Anmeldung bleibt in diesem Browser; die Kopie deiner Plätze liegt wie alles andere nur auf dem Gerät.</p>
   <p>Angesehene Kartenausschnitte bleiben eine Weile auf dem Gerät, damit die Karte auch ohne Netz geht.</p>
   <h3>Löschen</h3>
-  <p>Alles löschen: die App vom Home-Bildschirm entfernen bzw. die Websitedaten von frag-herbert.github.io im Browser löschen.
-    Vorher ein Backup machen, wenn du die Plätze behalten willst.</p>`;
+  <p>Einstellungen → Löschen → „Alle Daten auf diesem Gerät löschen“ entfernt Plätze, Fotos, die Kopie aus Home Assistant samt Anmeldung,
+    Offline-Karten und Einstellungen. Vorher ein Backup machen, wenn du die Plätze behalten willst. Ebenso wirkt es, die App vom
+    Home-Bildschirm zu entfernen bzw. die Websitedaten von frag-herbert.github.io im Browser zu löschen.</p>`;
 
 export const LIZENZEN = `
   <p><b>Frag Herbert</b> ist freie Software unter der ${a("https://github.com/frag-herbert/frag-herbert.github.io/blob/main/LICENSE", "MIT-Lizenz")}.</p>

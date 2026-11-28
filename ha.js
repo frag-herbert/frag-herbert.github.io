@@ -5,8 +5,8 @@
  *   Stand:     GET <HA>/api/frag_herbert/stand  → ganzer Stand, ersetzt die Kopie im HA-Bestand (speicher.haUebernehmen)
  *   Bilder:    GET <HA>/api/frag_herbert/foto/<ID>[?groesse=vorschau] → bei Bedarf, dann offline im Zwischenspeicher
  */
-import { speicher, BESTAND } from "./speicher.js?v=10";
-import { platzPruefen, fotoPruefen } from "./plaetze.js?v=10";
+import { speicher, BESTAND } from "./speicher.js?v=11";
+import { platzPruefen, fotoPruefen } from "./plaetze.js?v=11";
 
 const SEITE = new URL("./", location.href).href.split(/[?#]/)[0];
 const K = { ha: "herbert-ha", zustand: "herbert-ha-zustand", bestand: "herbert-bestand", loeschen: "herbert-ha-loeschen" };
@@ -114,6 +114,13 @@ export const ha = {
     merke(K.ha, null);
     try { localStorage.setItem(K.loeschen, "1"); } catch (e) { /* gesperrt */ }
     this.wechseln("lokal");
+  },
+
+  /** Anmeldung widerrufen und vergessen, ohne neu zu laden (beim Löschen aller Daten). */
+  async vergessen() {
+    const d = hole(K.ha);
+    if (d?.tokens) await abruf(`${d.adresse}/auth/revoke`, { method: "POST", body: new URLSearchParams({ token: d.tokens.refresh }) }).catch(() => {});
+    merke(K.ha, null);
   },
 
   /** Beim Start im lokalen Bestand: Kopie aus HA nach dem Abmelden löschen. */

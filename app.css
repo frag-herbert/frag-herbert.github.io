@@ -394,3 +394,5 @@ label.wahlzeile { cursor: pointer; }
 .nurlesen #hierknopf, .nurlesen label.knopf:has(#upload), .nurlesen a[href$="/bearbeiten"], .nurlesen [data-besuch-bearbeiten],
 .nurlesen [data-besuch-neu], .nurlesen [data-korrigieren], .nurlesen #gross .leiste, .nurlesen .aufruf:has(a[href$="/bearbeiten"]) { display: none !important; }
 .nurlesen .chip.nacht { pointer-events: none; }
+.liste-punkte { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+.f-rollen.text .aufruf { margin: 0; }

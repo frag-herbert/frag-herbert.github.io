@@ -271,6 +271,42 @@ export const speicher = {
   /** Aus HA geholtes Bild ablegen (Zwischenspeicher für offline). */
   bildMerken: (schluessel, daten) => transaktion(["bilder"], "readwrite", (s) => warten(s.bilder.put(daten, schluessel))),
 
+  /** Plätze (ohne Papierkorb) und Fotos je Bestand, ohne eine Datenbank anzulegen: { lokal, ha } mit { plaetze, fotos } oder null. */
+  async bestaende() {
+    const da = new Set((await indexedDB.databases?.().catch(() => null) || [{ name: "frag-herbert" }, { name: "frag-herbert-ha" }]).map((d) => d.name));
+    const zaehlen = (name) => new Promise((ok) => {
+      if (!da.has(name)) return ok(null);
+      const a = indexedDB.open(name);
+      a.onerror = () => ok(null);
+      a.onsuccess = () => {
+        const db = a.result;
+        try {
+          const t = db.transaction(["plaetze", "fotos"], "readonly"), e = {};
+          t.objectStore("plaetze").getAll().onsuccess = (x) => (e.plaetze = x.target.result.filter((p) => !p.geloescht).length);
+          t.objectStore("fotos").count().onsuccess = (x) => (e.fotos = x.target.result);
+          t.oncomplete = () => { db.close(); ok(e); };
+          t.onabort = () => { db.close(); ok(null); };
+        } catch (x) { db.close(); ok(null); }
+      };
+    });
+    return { lokal: await zaehlen("frag-herbert"), ha: await zaehlen("frag-herbert-ha") };
+  },
+
+  /** Beide Datenbanken löschen. Andere Fenster schließen ihre Verbindung von selbst (onversionchange). */
+  async allesLoeschen() {
+    if (dbVersprechen) { try { (await dbVersprechen).close(); } catch (e) { /* war nicht offen */ } dbVersprechen = null; }
+    for (const name of ["frag-herbert", "frag-herbert-ha"]) {
+      await new Promise((ok, f) => {
+        const a = indexedDB.deleteDatabase(name);
+        let frist = null;
+        a.onsuccess = () => { clearTimeout(frist); ok(); };
+        a.onerror = () => { clearTimeout(frist); f(a.error); };
+        a.onblocked = () => { frist = setTimeout(() => f(new Error("Frag Herbert ist noch in einem anderen Fenster offen. Bitte dort schließen.")), 8000); };
+      });
+    }
+    kanal?.postMessage("geaendert");
+  },
+
   meta: (schluessel) => transaktion(["meta"], "readonly", (s) => warten(s.meta.get(schluessel))),
   /** stand = Änderungszähler beim Erstellen: was danach geändert wurde, zählt weiter als ungesichert. */
   backupGemerkt: (zeit, stand) => transaktion(["meta"], "readwrite", async (s) => {

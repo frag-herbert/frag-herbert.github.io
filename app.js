@@ -4,20 +4,20 @@
  * Statische Seite ohne Server: alle Daten liegen in der Datenbank des Browsers (speicher.js). daten.js = Datenschicht, plaetze.js = Rechenregeln,
  * backup.js + zip.js = Sichern und Einspielen, karte.js + kartenstil.js = Karte (MapLibre), blatt.js = Bedienfeld/ziehbares Blatt.
  */
-import { icon } from "./icons.js?v=10";
-import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=10";
-import { speicher, BESTAND, NUR_LESEN } from "./speicher.js?v=10";
-import { ha } from "./ha.js?v=10";
-import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=10";
-import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=10";
-import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=10";
-import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=10";
-import { Karte } from "./karte.js?v=10";
-import { EBENEN } from "./kartenstil.js?v=10";
-import { Blatt } from "./blatt.js?v=10";
-import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=10";
+import { icon } from "./icons.js?v=11";
+import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=11";
+import { speicher, BESTAND, NUR_LESEN } from "./speicher.js?v=11";
+import { ha } from "./ha.js?v=11";
+import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=11";
+import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=11";
+import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=11";
+import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=11";
+import { Karte } from "./karte.js?v=11";
+import { EBENEN } from "./kartenstil.js?v=11";
+import { Blatt } from "./blatt.js?v=11";
+import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=11";
 
-const VERSION = "0.9.0";
+const VERSION = "0.10.0";
 const TESTVERSION = VERSION.startsWith("0."); // bis 1.0: Hinweis beim Start, frühere Backup-Erinnerung
 const HA = BESTAND === "ha"; // Kopie aus Home Assistant, nur lesen (KONZEPT-WEBAPP.md 12.2.1)
 const HA_NEU_MIN = 10; // so lange nach dem letzten Holen holt die App beim Zurückkehren erneut
@@ -485,7 +485,9 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
         <div class="zeile"><span>App-Dateien neu laden<small>Falls etwas klemmt. Plätze, Fotos und Karten bleiben.</small></span><button class="knopf flach" id="m-reparieren" ${navigator.onLine ? "" : "disabled"}>Neu laden</button></div>
         <div class="zeile"><span>Datenschutz<small>Was auf dem Gerät bleibt, wer etwas mitbekommt</small></span><button class="knopf flach" data-info="datenschutz">Lesen</button></div>
         <div class="zeile"><span>Lizenzen<small>Software und Kartenquellen</small></span><button class="knopf flach" data-info="lizenzen">Lesen</button></div>
-        <details><summary>Diagnose</summary><p>HTTPS ${jn(window.isSecureContext)} · Offline-Dienst ${navigator.serviceWorker?.controller ? "aktiv" : "nicht aktiv"} · Speicher dauerhaft ${jn(dauerhaft)}${belegt ? ` · ${belegt}` : ""} · ${installiert() ? "installiert" : "im Browser"}${this.swFehler ? ` · Fehler: ${esc(this.swFehler)}` : ""}</p></details></div></div></div>`;
+        <details><summary>Diagnose</summary><p>HTTPS ${jn(window.isSecureContext)} · Offline-Dienst ${navigator.serviceWorker?.controller ? "aktiv" : "nicht aktiv"} · Speicher dauerhaft ${jn(dauerhaft)}${belegt ? ` · ${belegt}` : ""} · ${installiert() ? "installiert" : "im Browser"}${this.swFehler ? ` · Fehler: ${esc(this.swFehler)}` : ""}</p></details></div></div>
+      <div><div class="ueber">Löschen</div><div class="block"><div class="zeile"><span>Alle Daten auf diesem Gerät löschen<small>Plätze, Fotos, Kopie aus Home Assistant, Offline-Karten, Einstellungen</small></span>
+        <button class="knopf flach warnung" id="m-loeschen">Löschen …</button></div></div></div></div>`;
     d.querySelector(".f-rollen").scrollTop = rollen;
     this.fensterOeffnen("#menue");
     $("#m-darstellung").onclick = (e) => {
@@ -511,6 +513,7 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
       else anzeige.textContent = { aktuell: `${VERSION} ist die neueste Version.`, offline: "Keine Verbindung – später erneut versuchen.", kein: "Der Offline-Dienst ist hier nicht aktiv.",
         fehler: "Das Update konnte nicht geladen werden. Die bisherige Version läuft weiter." }[r];
     };
+    $("#m-loeschen").onclick = () => this.loeschenZeigen();
     $("#m-reparieren").onclick = async () => {
       if (await this.frage({ titel: "App-Dateien neu laden?", text: "Die App wird frisch geladen. Plätze, Fotos und Karten bleiben erhalten.", knopf: "Neu laden" })) this.appNeuLaden();
     };
@@ -575,6 +578,59 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
       this.meldung(e.message, true);
       this.hinweisWaehlen();
     } finally { this.haLaeuft = false; }
+  },
+
+  /**
+   * Alle Daten auf diesem Gerät löschen. Zwei Schritte, damit nichts aus Versehen passiert: erst genau zeigen, was weg ist (mit Zahlen)
+   * und ein Backup anbieten, dann nur nach Eintippen von „LÖSCHEN“. In Home Assistant ändert sich nichts; die Anmeldung wird widerrufen.
+   */
+  async loeschenZeigen() {
+    const d = $("#frage"), b = await speicher.bestaende(), lokal = b.lokal || { plaetze: 0, fotos: 0 };
+    const backup = HA ? null : this.daten?.backup, geaendert = !HA && this.daten?.aenderungen;
+    const punkte = [
+      `<b>${plural(lokal.plaetze, "Platz", "Plätze")} und ${plural(lokal.fotos, "Foto", "Fotos")}</b> auf diesem Gerät, auch der Papierkorb`,
+      ...(b.ha ? [`die Kopie aus Home Assistant (${plural(b.ha.plaetze, "Platz", "Plätze")}) und die Anmeldung dort – <b>in Home Assistant selbst ändert sich nichts</b>`] : []),
+      "gespeicherte Kartenausschnitte (offline) und alle Einstellungen",
+    ];
+    const sicherung = !lokal.plaetze ? "" : HA ? `<p class="aufruf">${icon("information-outline")}<span>Für ein Backup deiner Plätze auf diesem Gerät zuerst unter Einstellungen → Plätze zu „Auf diesem Gerät“ wechseln.</span></p>`
+      : backup && !geaendert ? `<p class="grau">Letztes Backup ${uhrzeit(backup)}, seitdem unverändert.</p>`
+      : `<p class="aufruf">${icon("information-outline")}<span>${backup ? `Seit dem letzten Backup (${uhrzeit(backup)}) hat sich etwas geändert.` : "Es gibt noch kein Backup."} Ohne Backup sind die Plätze unwiederbringlich weg.</span><button class="knopf flach" data-l="backup">Backup</button></p>`;
+    const schritt1 = () => {
+      d.innerHTML = `<div class="f-kopf"><h2 tabindex="-1" autofocus>Alle Daten auf diesem Gerät löschen?</h2></div><div class="f-rollen text">
+        <p>Gelöscht werden:</p><ul class="liste-punkte">${punkte.map((x) => `<li>${x}</li>`).join("")}</ul>${sicherung}
+        <p>Das lässt sich nicht rückgängig machen. Danach startet Frag Herbert wie neu.</p></div>
+        <div class="f-fuss"><button class="knopf" data-l="nein">Abbrechen</button><button class="knopf warnung" style="flex:1" data-l="weiter">Weiter</button></div>`;
+    };
+    const schritt2 = () => {
+      d.innerHTML = `<div class="f-kopf"><h2 tabindex="-1">Wirklich alles löschen?</h2></div><div class="f-rollen text">
+        <p>Zur Bestätigung bitte <b>LÖSCHEN</b> eintippen.</p>
+        <div class="formular schlicht"><label class="feld"><span class="ueber">Bestätigung</span><input id="l-wort" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done"></label></div></div>
+        <div class="f-fuss"><button class="knopf" data-l="nein">Abbrechen</button><button class="knopf warnung" style="flex:1" data-l="loeschen" disabled>${lokal.plaetze ? `${plural(lokal.plaetze, "Platz", "Plätze")} und alles andere löschen` : "Alles löschen"}</button></div>`;
+      const feld = $("#l-wort"), knopf = d.querySelector('[data-l="loeschen"]');
+      feld.oninput = () => (knopf.disabled = feld.value.trim().toUpperCase() !== "LÖSCHEN");
+      feld.focus();
+    };
+    d.onclick = async (e) => {
+      const k = e.target.closest("[data-l]")?.dataset.l;
+      if (k === "nein" || e.target === d) return d.close();
+      if (k === "backup") { d.close(); $("#menue").close(); return this.backupZeigen(); }
+      if (k === "weiter") return schritt2();
+      if (k !== "loeschen" || $("#l-wort").value.trim().toUpperCase() !== "LÖSCHEN") return;
+      d.querySelectorAll("button, input").forEach((x) => (x.disabled = true));
+      try {
+        await ha.vergessen();
+        quelle.bilderVergessen();
+        await speicher.allesLoeschen();
+        for (const n of await caches.keys().catch(() => [])) if (n === "herbert-karte") await caches.delete(n);
+        try { localStorage.clear(); sessionStorage.clear(); } catch (x) { /* gesperrt */ }
+        location.replace(APP_URL);
+      } catch (x) {
+        d.close();
+        this.meldung(`Nicht gelöscht: ${x.message}`, true);
+      }
+    };
+    schritt1();
+    d.showModal();
   },
 
   /** Datenschutz oder Lizenzen (info.js), über den Einstellungen. */
