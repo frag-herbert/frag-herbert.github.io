@@ -3,9 +3,9 @@
  * Neue Version: VERSION erhöhen und die ?v=-Angaben in APP, index.html und den import-Zeilen angleichen (tools/pruefen.py).
  * Es werden nur eigene Caches („herbert-…“) angefasst.
  */
-const VERSION = "herbert-app-12";
-const APP = ["./", "app.js?v=12", "app.css?v=12", "thema.js?v=12", "daten.js?v=12", "speicher.js?v=12", "plaetze.js?v=12", "backup.js?v=12", "abgleich.js?v=12", "zip.js?v=12", "import.js?v=12", "karte.js?v=12",
-  "kartenstil.js?v=12", "blatt.js?v=12", "icons.js?v=12", "info.js?v=12", "ha.js?v=12", "manifest.webmanifest", "maplibre/maplibre-gl-csp.js?v=6.24.0", "maplibre/maplibre-gl-csp-worker.js",
+const VERSION = "herbert-app-13";
+const APP = ["./", "app.js?v=13", "app.css?v=13", "thema.js?v=13", "daten.js?v=13", "speicher.js?v=13", "plaetze.js?v=13", "backup.js?v=13", "abgleich.js?v=13", "zip.js?v=13", "import.js?v=13", "karte.js?v=13",
+  "kartenstil.js?v=13", "blatt.js?v=13", "icons.js?v=13", "info.js?v=13", "ha.js?v=13", "manifest.webmanifest", "maplibre/maplibre-gl-csp.js?v=6.24.0", "maplibre/maplibre-gl-csp-worker.js",
   "maplibre/maplibre-gl.css?v=6.24.0", "icon-180.png?v=13", "icon-192.png?v=13", "icon-512.png?v=13"];
 const KACHELN = "herbert-karte";
 const KACHEL_TAGE = 60;

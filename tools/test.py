@@ -3,6 +3,7 @@
 WebKit als iPhone und Mac-Fenster; Offline in Chromium (Playwright-WebKit kann keine Service Worker)."""
 import json
 import os
+import re
 import struct
 import subprocess
 import sys
@@ -17,6 +18,18 @@ os.makedirs(AUS, exist_ok=True)
 PORT = 8791
 URL = f"http://localhost:{PORT}/"
 alle = []
+
+
+def pixel(png):
+    """Farbe (R, G, B) des ersten Pixels eines PNG (Bildschirmfoto) – ohne Zusatzpakete."""
+    import zlib
+    teile, i = {}, 8
+    while i < len(png):
+        n = struct.unpack(">I", png[i:i + 4])[0]; art = png[i + 4:i + 8]
+        teile[art] = teile.get(art, b"") + png[i + 8:i + 8 + n]; i += 12 + n
+    breite, _, tiefe, farbart = struct.unpack(">IIBB", teile[b"IHDR"][:10])
+    roh = zlib.decompress(teile[b"IDAT"])
+    return tuple(roh[1:4])  # erste Zeile, Filter 0 oder 1 (Sub): beim ersten Pixel identisch
 
 
 def exif_jpeg(roh, lat, lon, zeit):
@@ -74,7 +87,7 @@ def lauf(p, name, motor, optionen):
     mobil = optionen.get("is_mobile", False)
     ueberlauf = lambda: js("[...document.querySelectorAll('#blatt, dialog[open]')].filter(e => e.scrollWidth > e.clientWidth + 1).map(e => e.id)")
     offen = lambda pfad: (js(f"location.hash = {json.dumps(pfad)}"), g.wait_for_timeout(500))
-    daten = lambda: js("import('./speicher.js?v=12').then(m => m.speicher.alles())")
+    daten = lambda: js("import('./speicher.js?v=13').then(m => m.speicher.alles())")
 
     def start():
         g.goto(URL)
@@ -86,7 +99,7 @@ def lauf(p, name, motor, optionen):
     schritt("Start leer", start)
 
     def rechnen():
-        r = js("""async () => { const m = await import('./plaetze.js?v=12'); const k = (t) => { const x = m.koordinatenLesen(t); return x && [x.lat.toFixed(4), x.lon.toFixed(4)].join(); };
+        r = js("""async () => { const m = await import('./plaetze.js?v=13'); const k = (t) => { const x = m.koordinatenLesen(t); return x && [x.lat.toFixed(4), x.lon.toFixed(4)].join(); };
           const n = (a, b, j) => m.kalendernaechte({ ankunft: a, abfahrt: b, naechte: {} }, j && new Date(j)).length;
           return { k: ['47.6553, 11.3610', '47,6553 11,3610', 'https://www.google.com/maps/place/X/@47.1,11.1,15z/data=!3d47.6553!4d11.3610', 'https://www.google.com/maps/search/?api=1&query=47.6553%2C11.3610',
             'https://maps.apple.com/?ll=47.6553,11.3610&q=Hier', 'https://www.openstreetmap.org/?mlat=47.6553&mlon=11.3610#map=15/47.6/11.3', 'geo:47.6553,11.3610', `47°39'19.1"N 11°21'39.6"E`, '33.8568 S, 151.2153 E'].map(k),
@@ -277,7 +290,7 @@ def lauf(p, name, motor, optionen):
         n = z.namelist()
         muss("daten.json" in n and len([x for x in n if x.startswith("fotos/")]) == 1, n)
         g.wait_for_timeout(500)
-        muss(js("import('./speicher.js?v=12').then(m => m.speicher.meta('aenderungen'))") == 0, "Zähler")
+        muss(js("import('./speicher.js?v=13').then(m => m.speicher.meta('aenderungen'))") == 0, "Zähler")
         return f"{os.path.getsize(zipdatei) // 1024} KB"
     schritt("Backup erstellen (mit Python gegengeprüft)", backup)
 
@@ -312,7 +325,7 @@ def lauf(p, name, motor, optionen):
 
     def zusammen():
         # Nach dem Backup ändern: die jüngere Änderung muss bleiben, der gelöschte Besuch auch
-        js("""async () => { const m = await import('./daten.js?v=12'), s = await import('./speicher.js?v=12'); const p = (await s.speicher.alles()).plaetze.find(x => x.name === 'Limoneto'); await m.quelle.feld(p.id, { name: 'Limoneto neu' }); }""")
+        js("""async () => { const m = await import('./daten.js?v=13'), s = await import('./speicher.js?v=13'); const p = (await s.speicher.alles()).plaetze.find(x => x.name === 'Limoneto'); await m.quelle.feld(p.id, { name: 'Limoneto neu' }); }""")
         einspielen(zipdatei, "dazu")
         d = daten()
         muss(len(d["plaetze"]) == 2 and len(d["fotos"]) == 1, (len(d["plaetze"]), len(d["fotos"])))
@@ -334,11 +347,11 @@ def lauf(p, name, motor, optionen):
         fid = next(f["id"] for f in d0["fotos"] if f["platz"] == lim["id"])
         hat = lambda d, pid=None, f=None: (any(x["id"] == pid for x in d["plaetze"]) if pid else any(x["id"] == f for x in d["fotos"]))
         # Foto löschen wie in der Galerie, Platz endgültig entfernen wie nach 30 Tagen Papierkorb
-        js(f"""async () => {{ const m = await import('./daten.js?v=12'), s = await import('./speicher.js?v=12');
+        js(f"""async () => {{ const m = await import('./daten.js?v=13'), s = await import('./speicher.js?v=13');
           await m.quelle.fotoEntfernen('{fid}');
           await s.speicher.platzAendern('{see["id"]}', (p) => {{ p.geloescht = new Date(Date.now() - 40 * 864e5).toISOString(); }});
           await m.quelle.daten(); }}""")
-        v = js("import('./speicher.js?v=12').then(m => m.speicher.vermerke())")
+        v = js("import('./speicher.js?v=13').then(m => m.speicher.vermerke())")
         muss(see["id"] in v["plaetze"] and fid in v["fotos"], v)
         # Altes Backup zusammenführen: beides kommt nicht zurück
         t = einspielen(zipdatei, "dazu")
@@ -346,7 +359,7 @@ def lauf(p, name, motor, optionen):
         muss(not hat(d, see["id"]) and not hat(d, f=fid), (len(d["plaetze"]), len(d["fotos"])))
         muss("endgültig entfernt" in t and "nicht zurückholen" in t, t)  # nur Gelöschtes im alten Backup: nichts zu übernehmen
         # Neues Backup trägt die Vermerke
-        roh = js("async () => { const b = await import('./backup.js?v=12'); const r = await b.backupErstellen('test'); return [...new Uint8Array(await r.dateien[0].arrayBuffer())]; }")
+        roh = js("async () => { const b = await import('./backup.js?v=13'); const r = await b.backupErstellen('test'); return [...new Uint8Array(await r.dateien[0].arrayBuffer())]; }")
         neu = f"{AUS}/{name}-vermerke.zip"
         open(neu, "wb").write(bytes(roh))
         dj = json.loads(zipfile.ZipFile(neu).read("daten.json"))
@@ -355,7 +368,7 @@ def lauf(p, name, motor, optionen):
         # Anderes Gerät mit altem Stand, dort Seeufer nachträglich geändert: der Platz bleibt, das Foto geht
         einspielen(zipdatei, "ersetzen")
         muss(hat(daten(), see["id"]) and hat(daten(), f=fid), "Altstand nicht hergestellt")
-        js(f"import('./daten.js?v=12').then(m => m.quelle.feld('{see['id']}', {{ name: 'Seeufer geändert' }}))")
+        js(f"import('./daten.js?v=13').then(m => m.quelle.feld('{see['id']}', {{ name: 'Seeufer geändert' }}))")
         t = einspielen(neu, "dazu")
         d = daten()
         muss(hat(d, see["id"]) and not hat(d, f=fid), (hat(d, see["id"]), hat(d, f=fid)))
@@ -370,7 +383,7 @@ def lauf(p, name, motor, optionen):
 
     def vorschau():
         lim0 = next(x for x in daten()["plaetze"] if x["name"] == "Limoneto")
-        js(f"import('./daten.js?v=12').then(m => m.quelle.feld('{lim0['id']}', {{ notiz: 'Notiz hier' }}))")
+        js(f"import('./daten.js?v=13').then(m => m.quelle.feld('{lim0['id']}', {{ notiz: 'Notiz hier' }}))")
         d0 = daten()
         lim = next(x for x in d0["plaetze"] if x["name"] == "Limoneto")
         see = next(x for x in d0["plaetze"] if x["name"].startswith("Seeufer"))
@@ -417,7 +430,7 @@ def lauf(p, name, motor, optionen):
     def export():
         d0 = daten()
         lim = next(x for x in d0["plaetze"] if x["name"] == "Limoneto")
-        zaehler = lambda: js("import('./speicher.js?v=12').then(m => m.speicher.meta('aenderungen'))")
+        zaehler = lambda: js("import('./speicher.js?v=13').then(m => m.speicher.meta('aenderungen'))")
         vorher = zaehler()
         # Einzeln gewählt, ohne Fotos: nur dieser Platz, keine Vermerke „entfernt“, zählt nicht als Backup
         exportOeffnen()
@@ -451,9 +464,9 @@ def lauf(p, name, motor, optionen):
         muss(any("<b>" in (o.findtext("{http://www.opengis.net/kml/2.2}name") or "") for o in orte), "Sonderzeichen im Namen verloren")
         # Teile: zweites Foto, Grenze 1 Byte → je Foto ein Teil, jeder Teil mit allen Plätzen
         fid = js(f"""async () => {{ const c = document.createElement('canvas'); c.width = 400; c.height = 300; c.getContext('2d').fillRect(0, 0, 400, 300);
-          const b = await new Promise(o => c.toBlob(o, 'image/jpeg')); const m = await import('./daten.js?v=12');
+          const b = await new Promise(o => c.toBlob(o, 'image/jpeg')); const m = await import('./daten.js?v=13');
           return m.quelle.fotoAnlegen('{lim["id"]}', new File([b], 'zwei.jpg', {{ type: 'image/jpeg' }})); }}""")
-        teile = js("""async () => { const b = await import('./backup.js?v=12'); const r = await b.backupErstellen('test', { teilMax: 1 });
+        teile = js("""async () => { const b = await import('./backup.js?v=13'); const r = await b.backupErstellen('test', { teilMax: 1 });
           return Promise.all(r.dateien.map(async d => [d.name, [...new Uint8Array(await d.arrayBuffer())]])); }""")
         muss(len(teile) == len(daten()["fotos"]) >= 2, len(teile))
         for i, (n, roh) in enumerate(teile):
@@ -462,7 +475,7 @@ def lauf(p, name, motor, optionen):
             dt = json.loads(zt.read("daten.json"))
             muss(f"teil-{i + 1}-von-{len(teile)}" in n and dt["teil"] == i + 1 and len(dt["plaetze"]) == len(d0["plaetze"])
                  and len([x for x in zt.namelist() if x.startswith("fotos/")]) == 1, (n, dt.get("teil")))
-        js(f"import('./daten.js?v=12').then(m => m.quelle.fotoEntfernen('{fid}', {{ vermerken: false }}))")
+        js(f"import('./daten.js?v=13').then(m => m.quelle.fotoEntfernen('{fid}', {{ vermerken: false }}))")
         muss(len(daten()["fotos"]) == len(d0["fotos"]), "Zusatzfoto nicht entfernt")
         return f"{len(teile)} Teile"
     schritt("Export: Auswahl ohne Fotos, KML, Teile", export)
@@ -667,7 +680,7 @@ def lauf(p, name, motor, optionen):
         muss(sorted(b["ankunft"] for b in x["besuche"]) == ["2025-02-03T12:00", "2025-02-05T12:00"], x["besuche"])
         muss(sorted(f["aufnahme"] for f in d["fotos"] if f["platz"] == x["id"])[1] == "2025-02-03T18:00:00", d["fotos"])
         # Gespeicherte Fotos tragen kein EXIF (GPS) mehr
-        muss(not js("""async () => { const s = await import('./speicher.js?v=12'); for (const f of (await s.speicher.alles()).fotos) { const b = new Uint8Array(await (await s.speicher.bild(f.id + '|g')).arrayBuffer()); for (let i = 0; i < Math.min(b.length, 4000); i++) if (b[i] === 0x45 && b[i+1] === 0x78 && b[i+2] === 0x69 && b[i+3] === 0x66 && f.breite === 900 && b[i+6] === 0x49 ) return true; } return false; }"""), "GPS noch im Foto")
+        muss(not js("""async () => { const s = await import('./speicher.js?v=13'); for (const f of (await s.speicher.alles()).fotos) { const b = new Uint8Array(await (await s.speicher.bild(f.id + '|g')).arrayBuffer()); for (let i = 0; i < Math.min(b.length, 4000); i++) if (b[i] === 0x45 && b[i+1] === 0x78 && b[i+2] === 0x69 && b[i+3] === 0x66 && f.breite === 900 && b[i+6] === 0x49 ) return true; } return false; }"""), "GPS noch im Foto")
         g.click("#i-rueck")
         g.wait_for_selector("#import", state="hidden")
         n = daten()
@@ -690,7 +703,7 @@ def lauf(p, name, motor, optionen):
     schritt("Papierkorb", papierkorb)
 
     def abfahrt():
-        js("""import('./daten.js?v=12').then(async (m) => { const p = (await (await import('./speicher.js?v=12')).speicher.alles()).plaetze.find(x => x.name === 'Limoneto'); await m.quelle.besuchAnlegen(p.id, { ankunft: '2026-11-01T18:00' }); })""")
+        js("""import('./daten.js?v=13').then(async (m) => { const p = (await (await import('./speicher.js?v=13')).speicher.alles()).plaetze.find(x => x.name === 'Limoneto'); await m.quelle.besuchAnlegen(p.id, { ankunft: '2026-11-01T18:00' }); })""")
         g.reload()
         g.wait_for_selector("#hinweis [data-tun]")
         muss("Abfahrt ist noch offen" in g.inner_text("#hinweis"), g.inner_text("#hinweis"))
@@ -770,14 +783,14 @@ def lauf(p, name, motor, optionen):
         warte("document.documentElement.classList.contains('nurlesen') && document.querySelectorAll('#liste .platz').length === 2")
         muss("code=" not in g.url, g.url)
         muss(not g.is_visible("#hierknopf"), "Neu-Knopf sichtbar")
-        p = js("import('./daten.js?v=12').then(m => m.quelle.daten()).then(d => d.plaetze.find(p => p.id === '2026-08-01T18:00'))")
+        p = js("import('./daten.js?v=13').then(m => m.quelle.daten()).then(d => d.plaetze.find(p => p.id === '2026-08-01T18:00'))")
         muss((p["naechte"], p["geparkt"], p["fotos"]) == (2, 1, 1), (p["naechte"], p["geparkt"], p["fotos"]))
         offen("#/platz/" + "2026-08-01T18%3A00")
         warte("[...document.querySelectorAll('#detail .foto img')].some(i => i.naturalWidth > 0)")
         muss(not js("[...document.querySelectorAll('#detail a[href$=\"/bearbeiten\"], #detail [data-besuch-neu]')].some(e => e.offsetParent)"), "Bearbeiten sichtbar")
         offen("#/platz/" + "2026-08-01T18%3A00/bearbeiten")
         muss(not js("location.hash.endsWith('/bearbeiten')"), "Bearbeiten erreichbar")
-        fehler = js("import('./daten.js?v=12').then(m => m.quelle.anlegen({ lat: 1, lon: 1 })).then(() => 'geschrieben', e => e.message)")
+        fehler = js("import('./daten.js?v=13').then(m => m.quelle.anlegen({ lat: 1, lon: 1 })).then(() => 'geschrieben', e => e.message)")
         muss("Camper-App" in fehler, fehler)
         # Stufe 1½: zweites Holen fragt nur nach Änderungen seit Stand 7 (Platz umbenannt, „Pass“ endgültig entfernt)
         js("document.querySelector('[data-menue]').click()")
@@ -785,8 +798,13 @@ def lauf(p, name, motor, optionen):
         g.click("#m-ha-holen")
         warte("document.querySelectorAll('#liste .platz').length === 1")
         muss("geändert" in g.inner_text("#meldung"), g.inner_text("#meldung"))
+        # Sichtbar über dem Fenster? (elementFromPoint hilft nicht: ein offener Dialog sperrt alles außerhalb für Klicks)
+        r = js("(() => { const m = document.querySelector('#meldung'), r = m.getBoundingClientRect(); return [r.x, r.y, r.width, r.height, getComputedStyle(m).backgroundColor]; })()")
+        farbe = pixel(g.screenshot(clip={"x": r[0] + 4, "y": r[1] + r[3] / 2, "width": 1, "height": 1}))
+        soll = tuple(int(x) for x in re.findall(r"\d+", r[4])[:3])
+        muss(all(abs(a - b) <= 8 for a, b in zip(farbe, soll)), f"Meldung verdeckt: Pixel {farbe}, Meldung {soll}")
         js("document.querySelector('#menue').close()")
-        p2 = js("import('./daten.js?v=12').then(m => m.quelle.daten()).then(d => d.plaetze[0])")
+        p2 = js("import('./daten.js?v=13').then(m => m.quelle.daten()).then(d => d.plaetze[0])")
         muss(p2["name"] == "Am Weiher (neu)" and p2["fotos"] == 1 and p2["zeiten"]["name"] == "2026-11-28T12:00:00+01:00", (p2["name"], p2["fotos"], p2["zeiten"]["name"]))
         protokoll = open(f"{AUS}/ha-attrappe.json.log").read().split("\n")
         muss("stand aenderungen seit=7" in protokoll, protokoll)
@@ -823,7 +841,7 @@ def lauf(p, name, motor, optionen):
             h.wait_for_selector("#liste .platz")
             vorher = h.locator("#liste .platz").count()
             g.bring_to_front()
-            js("import('./daten.js?v=12').then(m => m.quelle.anlegen({ lat: 52, lon: 10 }))")
+            js("import('./daten.js?v=13').then(m => m.quelle.anlegen({ lat: 52, lon: 10 }))")
             for _ in range(40):
                 if h.locator("#liste .platz").count() == vorher + 1:
                     break
@@ -860,7 +878,7 @@ def lauf(p, name, motor, optionen):
         g.click(knopf)
         g.wait_for_selector(".willkommen")
         warte("localStorage.length === 0 || [...Array(localStorage.length).keys()].every(i => !localStorage.key(i).startsWith('herbert-ha'))")
-        rest = js("import('./speicher.js?v=12').then(m => m.speicher.bestaende())")
+        rest = js("import('./speicher.js?v=13').then(m => m.speicher.bestaende())")
         muss(not (rest["lokal"] or {}).get("plaetze") and not rest["ha"], rest)
         if motor == "chromium":
             muss(not js("caches.open('herbert-karte').then(c => c.match('https://tiles.openfreemap.org/merker')).then(Boolean)"), "Karten noch da")

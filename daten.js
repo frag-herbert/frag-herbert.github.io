@@ -2,9 +2,9 @@
  * Datenschicht: liest und schreibt die lokale Datenbank (speicher.js) und liefert der Oberfläche fertige Plätze (plaetze.js).
  * Im Bestand „ha“ (Kopie aus Home Assistant, nur lesen) kommen fehlende Bilder bei Bedarf aus HA (ha.js).
  */
-import { speicher, BESTAND } from "./speicher.js?v=12";
-import { ha } from "./ha.js?v=12";
-import { aufbereiten, neuerBesuch, neuerPlatz, neueId, platzBei, setzen, jetztIso, lokal, PAPIERKORB_TAGE } from "./plaetze.js?v=12";
+import { speicher, BESTAND } from "./speicher.js?v=13";
+import { ha } from "./ha.js?v=13";
+import { aufbereiten, neuerBesuch, neuerPlatz, neueId, platzBei, setzen, jetztIso, lokal, PAPIERKORB_TAGE } from "./plaetze.js?v=13";
 
 export const APP_URL = new URL("./", location.href).href.split(/[?#]/)[0];
 export const SPEICHER = { ansicht: "herbert-ansicht", hinweise: "herbert-hinweise" };

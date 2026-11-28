@@ -313,7 +313,8 @@ dialog::backdrop { background: rgba(8, 18, 14, 0.42); }
 .schalter:checked { background: var(--akzent); }
 .schalter:checked::after { transform: translateX(20px); }
 #frage p { margin: 0; white-space: pre-line; }
-#meldung { position: absolute; z-index: 30; left: 50%; top: calc(16px + var(--oben)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: 16px; background: var(--text); color: var(--flaeche); font-size: 14.5px; box-shadow: var(--schatten); }
+/* Popover: liegt in der obersten Ebene, also auch über offenen Fenstern (Dialoge) */
+#meldung { position: fixed; inset: auto; margin: 0; border: 0; overflow: visible; z-index: 30; left: 50%; top: calc(16px + var(--oben)); transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 11px 18px; border-radius: 16px; background: var(--text); color: var(--flaeche); font-size: 14.5px; box-shadow: var(--schatten); }
 #meldung.fehler { background: var(--warn); color: #fff; }
 :root[data-thema="dunkel"] #meldung.fehler { color: #2b0905; }
 

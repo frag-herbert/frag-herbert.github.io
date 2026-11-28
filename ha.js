@@ -6,8 +6,8 @@
  *              (Stufe 1½; HA antwortet „ganz“, wenn es N oder die Kennung nicht mehr kennt) → speicher.haUebernehmen
  *   Bilder:    GET <HA>/api/frag_herbert/foto/<ID>[?groesse=vorschau] → bei Bedarf, dann offline im Zwischenspeicher
  */
-import { speicher, BESTAND } from "./speicher.js?v=12";
-import { platzPruefen, fotoPruefen } from "./plaetze.js?v=12";
+import { speicher, BESTAND } from "./speicher.js?v=13";
+import { platzPruefen, fotoPruefen } from "./plaetze.js?v=13";
 
 const SEITE = new URL("./", location.href).href.split(/[?#]/)[0];
 const K = { ha: "herbert-ha", zustand: "herbert-ha-zustand", bestand: "herbert-bestand", loeschen: "herbert-ha-loeschen" };

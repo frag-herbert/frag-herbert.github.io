@@ -2,8 +2,8 @@
  * Karte von Frag Herbert (MapLibre GL, lokal unter maplibre/). Vektorkacheln und Marker zeichnet die Grafikeinheit,
  * dadurch stufenloser Zoom. Marker sind Bilder im Stil (Titelbild im Kreis, Ring in der Farbe der Art), keine HTML-Elemente.
  */
-import { PFADE } from "./icons.js?v=12";
-import { kartenstil, bildFarben, ART_FARBEN, EBENEN, LUFTBILD, LAENDER } from "./kartenstil.js?v=12";
+import { PFADE } from "./icons.js?v=13";
+import { kartenstil, bildFarben, ART_FARBEN, EBENEN, LUFTBILD, LAENDER } from "./kartenstil.js?v=13";
 
 const MAX_ZOOM = 18.5;
 const LEER = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4AWJiYGBgAAAAAP//XRcpzQAAAAZJREFUAwAADwADJDd96QAAAABJRU5ErkJggg=="), (c) => c.charCodeAt(0)).buffer;
