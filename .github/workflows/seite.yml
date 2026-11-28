@@ -1,0 +1,47 @@
+# Veröffentlicht die App auf GitHub Pages – nur wenn tools/pruefen.py nichts findet.
+# Einstellung im Repo: Settings → Pages → Source „GitHub Actions“.
+# Ausgeliefert werden nur die App-Dateien; tools/ und .github/ bleiben im Repo.
+name: Seite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 tools/pruefen.py
+      - name: Seite zusammenstellen
+        run: |
+          mkdir _site
+          rsync -a --exclude '.git*' --exclude '.github' --exclude 'tools' --exclude '_site' ./ _site/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
+        with:
+          path: _site
+
+  veroeffentlichen:
+    if: github.event_name != 'pull_request'
+    needs: pruefen
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.seite.outputs.page_url }}
+    steps:
+      - id: seite
+        uses: actions/deploy-pages@v4

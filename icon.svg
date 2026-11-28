@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- App-Symbol der Stellplatz-Bibliothek: Herbert (grüner VW T3) von vorn, frei gezeichnet. PNG erzeugen: rendern.py -->
+  <defs>
+    <linearGradient id="himmel" x2="0" y2="1"><stop stop-color="#6fb3d6"/><stop offset=".5" stop-color="#cfe6ea"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#himmel)"/>
+  <!-- Szene verkleinert (Standfläche bleibt); Berge, Hang und Boden reichen deshalb über 0…512 hinaus -->
+  <g transform="translate(256 502) scale(.84) translate(-256 -502)">
+  
+  <!-- Berge: Fels im Abendlicht (hell = Sonnenseite rechts, dunkel = Schatten), darunter bewachsener Hang -->
+  <path d="M-90 520V214l30-24 20 6 40-24 24-22 16-34 26-18 22 12 18 34 26 26 24 44 100 30 96-30 30-40 22-12 20-40 28-12 18 22 42 16 24 34 26 8 40 36v260Z" fill="#a9805f"/>
+  <path d="M66 98l22 12 18 34 26 26 24 44-40 6-22-36-18-8-6-34ZM424 112l28-12 18 22 42 16 24 34-28 36-32-10-10-32-26-14Z" fill="#f2d09a"/>
+  <path d="M-90 520V262l34-22 26 20 30-6 30-30 26 8 30-22 34 26 56 18 150 10 60-30 28-24 30 16 28-18 40 26 30-8 30 24 30-6v270Z" fill="#1f8577"/>
+  <path d="M-90 520V352q44-16 90-4 80-74 168-34t150-16 194 14q50-14 90 8v200Z" fill="#0e6b5c"/>
+  <path d="M-90 449q346-40 692 0v80H-90Z" fill="#e2c48d"/>
+  <!-- Räder und Unterboden; der Wagen darüber sitzt hoch (translate) -->
+  <path d="M126 400h260v34q0 8-8 8H134q-8 0-8-8Z" fill="#141a18"/>
+  <rect x="80" y="380" width="54" height="114" rx="14" fill="#1b2320"/><rect x="378" y="380" width="54" height="114" rx="14" fill="#1b2320"/>
+  <g transform="translate(256 -26) scale(1.09 1) translate(-256 0)">
+  <!-- Dachgepäck -->
+  <path d="M166 132q-6-46 30-52 34-8 66-2 30 4 38 26 34-4 48 14 6 8 4 14Z" fill="#1b2320"/>
+  <rect x="140" y="126" width="232" height="13" rx="6" fill="#1b2320"/>
+  <path d="M166 134v16M346 134v16" stroke="#1b2320" stroke-width="10"/>
+  <!-- Spiegel: oberer Arm von der A-Säule in weitem Bogen nach unten, Spiegel innen an der Stange, unterer Arm kurz und schräg zur Tür -->
+  <g id="spiegel"><path d="M124 184 96 186Q62 189 60 222v28q0 11 11 13l30 6" fill="none" stroke="#1b2320" stroke-width="6" stroke-linecap="round"/><rect x="60" y="210" width="27" height="51" rx="8" fill="#1b2320"/></g>
+  <use href="#spiegel" transform="matrix(-1 0 0 1 512 0)"/>
+  <!-- Karosserie, Scheibe -->
+  <path d="M94 424V296q0-18 5-34l24-86q7-26 34-28 99-9 198 0 27 2 34 28l24 86q5 16 5 34v128Z" fill="#62bf38"/>
+  <path d="M156 165q100-9 200 0 12 1 16 14l20 66q4 14-11 15-125 8-250 0-15-1-11-15l20-66q4-13 16-14Z" fill="#21383e"/>
+  <path d="M176 173l-24 75h52l32-78Z" fill="#ffffff" opacity=".16"/>
+  <!-- Front: Grillband mit Scheinwerfern, Schnurrbart, unterer Grill, Blinker -->
+  <rect x="104" y="290" width="304" height="58" rx="12" fill="#1b2320"/>
+  <ellipse cx="256" cy="319" rx="16.5" ry="18" fill="#27312d"/>
+  <ellipse cx="139" cy="319" rx="20.18" ry="22" fill="#fff6dc"/><ellipse cx="373" cy="319" rx="20.18" ry="22" fill="#fff6dc"/>
+  <path d="M256 361c11-11 29-10 37-1 7 7 16 7 23 1-5 18-33 21-47 14-6-3-9-5-13-5s-7 2-13 5c-14 7-42 4-47-14 7 6 16 6 23-1 8-9 26-10 37 1Z" fill="#101715"/>
+  <rect x="150" y="384" width="212" height="20" rx="9" fill="#1b2320"/>
+  <rect x="98" y="366" width="26" height="22" rx="7" fill="#f08a24"/><rect x="388" y="366" width="26" height="22" rx="7" fill="#f08a24"/>
+  <!-- Stoßstange, Schild ohne Text -->
+  <rect x="82" y="412" width="348" height="34" rx="13" fill="#2a3531"/>
+  <rect x="208" y="418" width="96" height="22" rx="5" fill="#f6f7f3"/>
+  </g>
+  </g>
+  <!-- Stellplatz-Nadel -->
+  <g transform="translate(427 200) scale(1.75)"><path d="M0 0c-7-18-34-34-34-61a34 34 0 0 1 68 0c0 27-27 43-34 61Z" fill="#0e6b5c" stroke="#fffdf6" stroke-width="7" stroke-linejoin="round"/><circle cy="-61" r="13" fill="#fffdf6"/></g>
+</svg>

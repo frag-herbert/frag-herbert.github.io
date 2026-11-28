@@ -1,0 +1,62 @@
+<!doctype html>
+<!-- Frag Herbert – dein Stellplatzbuch. Statische Seite, alle Daten lokal im Browser. -->
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Frag Herbert</title>
+  <meta name="description" content="Dein Stellplatzbuch. Alle Daten bleiben auf deinem Gerät.">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' blob: https://tiles.openfreemap.org https://tiles.mapterhorn.com https://*.tile.opentopomap.org https://tiles.maps.eox.at https://mapsneu.wien.gv.at https://wmts.geo.admin.ch https://service.pdok.nl">
+  <meta name="theme-color" content="#f4f4ec">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Frag Herbert">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-180.png?v=13">
+  <link rel="icon" href="icon-192.png?v=13">
+  <link rel="stylesheet" href="maplibre/maplibre-gl.css?v=6.24.0">
+  <link rel="stylesheet" href="app.css?v=9">
+  <script src="thema.js?v=9"></script>
+</head>
+<body>
+  <div id="karte" aria-label="Karte der Stellplätze"></div>
+  <nav id="kartenknoepfe" aria-label="Karte"></nav>
+  <div id="ebenen" hidden></div>
+  <main id="blatt">
+    <button id="griff" aria-label="Höhe ändern"></button>
+    <section id="uebersicht">
+      <header>
+        <div class="suchzeile">
+          <label class="suchfeld"><span id="suchsymbol"></span><input id="suche" type="search" placeholder="Stellplätze durchsuchen" autocomplete="off" enterkeyhint="search"></label>
+          <button id="hierknopf" class="rund" title="Platz anlegen" aria-label="Platz anlegen"></button>
+          <button id="menueknopf" class="rund nur-voll" data-menue title="Einstellungen" aria-label="Einstellungen"></button>
+        </div>
+        <div id="schnellfilter"></div>
+      </header>
+      <div id="rollen">
+        <div id="update" hidden></div>
+        <div id="hinweis" hidden></div>
+        <div id="listenkopf"><span id="zaehler"></span><label class="sortierung"><select id="sortierung" aria-label="Sortierung"></select><span id="sortiersymbol"></span></label></div>
+        <div id="liste"></div>
+      </div>
+    </section>
+    <section id="detail" hidden></section>
+  </main>
+  <div id="waehlen" hidden></div>
+  <dialog id="neu" class="fenster schmal"></dialog>
+  <dialog id="besuch" class="fenster schmal"></dialog>
+  <dialog id="import" class="fenster schmal"></dialog>
+  <dialog id="backup" class="fenster schmal"></dialog>
+  <dialog id="filter" class="fenster"></dialog>
+  <dialog id="menue" class="fenster"></dialog>
+  <dialog id="info" class="fenster"></dialog>
+  <dialog id="frage" class="fenster schmal"></dialog>
+  <div id="meldung" role="status" hidden></div>
+  <dialog id="gross"></dialog>
+  <script src="maplibre/maplibre-gl-csp.js?v=6.24.0"></script>
+  <script type="module" src="app.js?v=9"></script>
+</body>
+</html>
