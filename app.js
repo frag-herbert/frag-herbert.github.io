@@ -4,20 +4,20 @@
  * Statische Seite ohne Server: alle Daten liegen in der Datenbank des Browsers (speicher.js). daten.js = Datenschicht, plaetze.js = Rechenregeln,
  * backup.js + zip.js = Sichern und Einspielen, karte.js + kartenstil.js = Karte (MapLibre), blatt.js = Bedienfeld/ziehbares Blatt.
  */
-import { icon } from "./icons.js?v=11";
-import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=11";
-import { speicher, BESTAND, NUR_LESEN } from "./speicher.js?v=11";
-import { ha } from "./ha.js?v=11";
-import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=11";
-import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=11";
-import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=11";
-import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=11";
-import { Karte } from "./karte.js?v=11";
-import { EBENEN } from "./kartenstil.js?v=11";
-import { Blatt } from "./blatt.js?v=11";
-import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=11";
+import { icon } from "./icons.js?v=12";
+import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=12";
+import { speicher, BESTAND, NUR_LESEN } from "./speicher.js?v=12";
+import { ha } from "./ha.js?v=12";
+import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=12";
+import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=12";
+import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=12";
+import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=12";
+import { Karte } from "./karte.js?v=12";
+import { EBENEN } from "./kartenstil.js?v=12";
+import { Blatt } from "./blatt.js?v=12";
+import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=12";
 
-const VERSION = "0.10.0";
+const VERSION = "0.11.0";
 const TESTVERSION = VERSION.startsWith("0."); // bis 1.0: Hinweis beim Start, frühere Backup-Erinnerung
 const HA = BESTAND === "ha"; // Kopie aus Home Assistant, nur lesen (KONZEPT-WEBAPP.md 12.2.1)
 const HA_NEU_MIN = 10; // so lange nach dem letzten Holen holt die App beim Zurückkehren erneut
@@ -573,7 +573,7 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
       const z = await ha.standHolen();
       this.haZuletzt = Date.now();
       await this.laden();
-      if (!still) this.meldung(`${plural(z.plaetze, "Platz", "Plätze")} aus Home Assistant geholt`);
+      if (!still) this.meldung(z.art === "ganz" ? `${plural(z.plaetze, "Platz", "Plätze")} aus Home Assistant geholt` : z.plaetze ? `${plural(z.plaetze, "Platz", "Plätze")} geändert` : "Aktuell – nichts Neues in Home Assistant");
     } catch (e) {
       this.meldung(e.message, true);
       this.hinweisWaehlen();

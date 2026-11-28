@@ -2,11 +2,12 @@
  * Verbindung zu Home Assistant (KONZEPT-WEBAPP.md 12.2.1, Stufe 1: nur lesen). Nur wer eine eigene HA mit der Integration
  * „frag_herbert“ hat, kann sich verbinden; für alle anderen bleibt es ein Eintrag in den Einstellungen ohne Wirkung.
  *   Anmeldung: HA-eigene Anmeldeseite (OAuth, client_id = Adresse der App), Token nur in diesem Browser (localStorage).
- *   Stand:     GET <HA>/api/frag_herbert/stand  → ganzer Stand, ersetzt die Kopie im HA-Bestand (speicher.haUebernehmen)
+ *   Stand:     GET <HA>/api/frag_herbert/stand[?seit=N&kennung=K] → beim ersten Mal ganz, danach nur „Änderungen seit Stand N“
+ *              (Stufe 1½; HA antwortet „ganz“, wenn es N oder die Kennung nicht mehr kennt) → speicher.haUebernehmen
  *   Bilder:    GET <HA>/api/frag_herbert/foto/<ID>[?groesse=vorschau] → bei Bedarf, dann offline im Zwischenspeicher
  */
-import { speicher, BESTAND } from "./speicher.js?v=11";
-import { platzPruefen, fotoPruefen } from "./plaetze.js?v=11";
+import { speicher, BESTAND } from "./speicher.js?v=12";
+import { platzPruefen, fotoPruefen } from "./plaetze.js?v=12";
 
 const SEITE = new URL("./", location.href).href.split(/[?#]/)[0];
 const K = { ha: "herbert-ha", zustand: "herbert-ha-zustand", bestand: "herbert-bestand", loeschen: "herbert-ha-loeschen" };
@@ -79,16 +80,22 @@ export const ha = {
     return r;
   },
 
-  /** Ganzen Stand holen und die Kopie ersetzen (nur im HA-Bestand). → { plaetze, fotos } Anzahlen */
-  async standHolen() {
+  /** Stand holen (ganz=true erzwingt den ganzen) und die Kopie nachführen (nur im HA-Bestand). → { plaetze, fotos, art } */
+  async standHolen(ganz = false) {
+    const bisher = ganz ? null : await speicher.meta("ha-stand").catch(() => null);
+    const frage = bisher?.kennung && Number.isInteger(bisher.stand) ? `?${new URLSearchParams({ seit: bisher.stand, kennung: bisher.kennung })}` : "";
     let d;
-    try { d = await (await this.holen("/api/frag_herbert/stand")).json(); } catch (e) { throw e instanceof SyntaxError ? new Error("Die Antwort von Home Assistant ist unlesbar.") : e; }
+    try { d = await (await this.holen(`/api/frag_herbert/stand${frage}`)).json(); } catch (e) { throw e instanceof SyntaxError ? new Error("Die Antwort von Home Assistant ist unlesbar.") : e; }
     if (d?.format !== "frag-herbert" || d.quelle !== "ha" || !Array.isArray(d.plaetze)) throw new Error("Die Antwort von Home Assistant passt nicht zu dieser App.");
     if (!(d.fassung <= 1)) throw new Error("Home Assistant liefert eine neuere Fassung. Bitte die App aktualisieren.");
-    const plaetze = d.plaetze.map(platzPruefen).filter(Boolean), ids = new Set(plaetze.map((p) => p.id));
-    const fotos = (Array.isArray(d.fotos) ? d.fotos : []).map(fotoPruefen).filter((f) => f && !f.geloescht && ids.has(f.platz));
-    await speicher.haUebernehmen({ plaetze, fotos, gelesen: typeof d.gelesen === "string" ? d.gelesen : new Date().toISOString() });
-    return { plaetze: plaetze.length, fotos: fotos.length };
+    const aenderungen = d.art === "aenderungen" && !!frage;
+    const plaetze = d.plaetze.map(platzPruefen).filter(Boolean);
+    // Fotos: immer die ganze Liste; ihr Platz liegt bei Änderungen evtl. schon in der Kopie, daher nicht gegen „plaetze“ filtern
+    const fotos = (Array.isArray(d.fotos) ? d.fotos : []).map(fotoPruefen).filter((f) => f && !f.geloescht);
+    const entfernt = (Array.isArray(d.entfernt) ? d.entfernt : []).map((x) => x?.id).filter((x) => typeof x === "string");
+    await speicher.haUebernehmen({ plaetze, fotos, entfernt, ganz: !aenderungen, gelesen: typeof d.gelesen === "string" ? d.gelesen : new Date().toISOString(),
+      kennung: typeof d.kennung === "string" ? d.kennung : null, stand: Number.isInteger(d.stand) ? d.stand : null });
+    return { plaetze: plaetze.length, fotos: fotos.length, art: aenderungen ? "aenderungen" : "ganz" };
   },
 
   /** Bild "<Foto-ID>|g" oder "|v" aus HA holen und für offline ablegen → Blob oder null. */

@@ -255,16 +255,19 @@ export const speicher = {
    * Stand aus HA übernehmen (nur im HA-Bestand): Plätze und Fotos ganz ersetzen; schon geholte Bilder bleiben, solange es das Foto noch gibt.
    * Kein Änderungszähler (keine eigenen Änderungen, nichts zu sichern).
    */
-  async haUebernehmen({ plaetze, fotos, gelesen }) {
+  async haUebernehmen({ plaetze, fotos, gelesen, ganz = true, entfernt = [], kennung = null, stand = null }) {
     if (BESTAND !== "ha") throw new Error("Nur im Bestand aus Home Assistant");
     await transaktion(["plaetze", "fotos", "bilder", "meta"], "readwrite", async (s) => {
+      // Die Fotoliste kommt immer ganz (auch bei „Änderungen seit Stand N“), Plätze nur bei ganz
       const bleiben = new Set(fotos.map((f) => f.id));
       for (const k of await warten(s.bilder.getAllKeys())) if (!bleiben.has(String(k).split("|")[0])) s.bilder.delete(k);
-      s.plaetze.clear();
+      if (ganz) s.plaetze.clear();
+      for (const id of entfernt) s.plaetze.delete(id);
       s.fotos.clear();
       for (const p of plaetze) s.plaetze.put(p);
       for (const f of fotos) s.fotos.put(f);
-      await warten(s.meta.put(gelesen, "ha-gelesen"));
+      s.meta.put(gelesen, "ha-gelesen");
+      await warten(s.meta.put({ kennung, stand }, "ha-stand"));
     });
     kanal?.postMessage("geaendert");
   },

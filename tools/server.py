@@ -12,7 +12,8 @@ import sys
 import urllib.parse
 
 # Nur für tools/test.py: HERBERT_HA_ATTRAPPE=<datei.json> bildet die Integration „frag_herbert“ samt HA-Anmeldung nach
-# ({ "stand": {...}, "bild": "<pfad.jpg>" }), unter derselben Adresse wie die App (KONZEPT-WEBAPP.md 12.2.1).
+# ({ "stand": {...}, "aenderungen": {...}, "bild": "<pfad.jpg>" }), unter derselben Adresse wie die App (KONZEPT-WEBAPP.md 12.2.1).
+# Mit ?seit=…&kennung=<stand.kennung> kommt „aenderungen“ (falls vorhanden), sonst „stand“. Abrufe zählt „abrufe“ in <datei>.log.
 ATTRAPPE = os.environ.get("HERBERT_HA_ATTRAPPE")
 TOKEN = "attrappe-token"
 
@@ -55,7 +56,10 @@ class H(http.server.SimpleHTTPRequestHandler):
             self.rfile.read(int(self.headers.get("Content-Length") or 0))
             self.antwort(200)
         elif u.path == "/api/frag_herbert/stand":
-            self.antwort(200 if angemeldet else 401, json.dumps(a["stand"]).encode() if angemeldet else b"")
+            delta = "aenderungen" in a and q.get("kennung") == a["stand"].get("kennung") and q.get("seit")
+            with open(ATTRAPPE + ".log", "a") as f:
+                f.write(f"stand {'aenderungen' if delta else 'ganz'} seit={q.get('seit')}\n")
+            self.antwort(200 if angemeldet else 401, json.dumps(a["aenderungen" if delta else "stand"]).encode() if angemeldet else b"")
         elif u.path.startswith("/api/frag_herbert/foto/"):
             self.antwort(200, open(a["bild"], "rb").read(), "image/jpeg") if angemeldet else self.antwort(401)
         else:

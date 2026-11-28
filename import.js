@@ -4,9 +4,9 @@
  * Formate: GPX, KML/KMZ, GeoJSON, Google Takeout (Saved Places.json, Listen als CSV), CSV (auch Garmin-POI ohne Kopfzeile), Fotos mit GPS.
  * Geschrieben wird hier nichts. Alle Inhalte gelten als fremd: nur Text und Zahlen, geprüft und gekürzt.
  */
-import { zipLesen } from "./zip.js?v=11";
-import { koordinatenLesen, gueltigeKoordinaten, km, AUSSTATTUNG_KEYS, PREIS_MAX } from "./plaetze.js?v=11";
-import { exifLesen } from "./daten.js?v=11";
+import { zipLesen } from "./zip.js?v=12";
+import { koordinatenLesen, gueltigeKoordinaten, km, AUSSTATTUNG_KEYS, PREIS_MAX } from "./plaetze.js?v=12";
+import { exifLesen } from "./daten.js?v=12";
 
 const MAX_BYTE = 50e6, MAX_PLAETZE = 5000;
 const FOTO_KM = 0.3; // Fotos im Umkreis gehören zu einem Platz

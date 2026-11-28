@@ -4,9 +4,9 @@
  * Vermerke (KONZEPT-WEBAPP.md 12.8.6): „entfernt“ = endgültig entfernte Plätze { id, zeit }, Fotos mit „geloescht“ = gelöschte Fotos
  * (ohne Bilddateien). Ältere Versionen ignorieren beides.
  */
-import { speicher } from "./speicher.js?v=11";
-import { zipLesen, zipSchreiben } from "./zip.js?v=11";
-import { platzPruefen, fotoPruefen, vermerkPruefen, zusammenfuehren, letzteAenderung, tagVon } from "./plaetze.js?v=11";
+import { speicher } from "./speicher.js?v=12";
+import { zipLesen, zipSchreiben } from "./zip.js?v=12";
+import { platzPruefen, fotoPruefen, vermerkPruefen, zusammenfuehren, letzteAenderung, tagVon } from "./plaetze.js?v=12";
 
 const FORMAT = "frag-herbert", FASSUNG = 1;
 
