@@ -26,6 +26,8 @@ export const DATENSCHUTZ = `
   <p>Beim Laden der App und der Kartenausschnitte sehen die folgenden Anbieter, wie bei jeder Webseite, deine IP-Adresse, den Browser und
     welche Kartengegend abgerufen wird – nicht aber deine Plätze.</p>
   <table class="anbieter">${ANBIETER.map(([n, h, w, l]) => `<tr><td><b>${n}</b><small>${h}</small></td><td>${w}<small>${l}</small></td></tr>`).join("")}</table>
+  <p><b>Mit Home Assistant verbunden</b> (nur wer das in den Einstellungen einrichtet): Die App spricht direkt mit deiner eigenen
+    Home Assistant, ohne Umweg. Die Anmeldung bleibt in diesem Browser; die Kopie deiner Plätze liegt wie alles andere nur auf dem Gerät.</p>
   <p>Angesehene Kartenausschnitte bleiben eine Weile auf dem Gerät, damit die Karte auch ohne Netz geht.</p>
   <h3>Löschen</h3>
   <p>Alles löschen: die App vom Home-Bildschirm entfernen bzw. die Websitedaten von frag-herbert.github.io im Browser löschen.

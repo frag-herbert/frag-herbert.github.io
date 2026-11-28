@@ -1,5 +1,6 @@
 <!doctype html>
-<!-- Frag Herbert – dein Stellplatzbuch. Statische Seite, alle Daten lokal im Browser. -->
+<!-- Frag Herbert – dein Stellplatzbuch. Statische Seite, alle Daten lokal im Browser.
+     connect-src „https:“: die eigene Home Assistant (ha.js) hat bei jedem eine andere Adresse; die Kartenrechner stehen trotzdem einzeln da (tools/pruefen.py). -->
 <html lang="de">
 <head>
   <meta charset="utf-8">
@@ -8,7 +9,7 @@
   <meta name="description" content="Dein Stellplatzbuch. Alle Daten bleiben auf deinem Gerät.">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' blob: https://tiles.openfreemap.org https://tiles.mapterhorn.com https://*.tile.opentopomap.org https://tiles.maps.eox.at https://mapsneu.wien.gv.at https://wmts.geo.admin.ch https://service.pdok.nl">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' blob: https: https://tiles.openfreemap.org https://tiles.mapterhorn.com https://*.tile.opentopomap.org https://tiles.maps.eox.at https://mapsneu.wien.gv.at https://wmts.geo.admin.ch https://service.pdok.nl">
   <meta name="theme-color" content="#f4f4ec">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -18,8 +19,8 @@
   <link rel="apple-touch-icon" href="icon-180.png?v=13">
   <link rel="icon" href="icon-192.png?v=13">
   <link rel="stylesheet" href="maplibre/maplibre-gl.css?v=6.24.0">
-  <link rel="stylesheet" href="app.css?v=9">
-  <script src="thema.js?v=9"></script>
+  <link rel="stylesheet" href="app.css?v=10">
+  <script src="thema.js?v=10"></script>
 </head>
 <body>
   <div id="karte" aria-label="Karte der Stellplätze"></div>
@@ -57,6 +58,6 @@
   <div id="meldung" role="status" hidden></div>
   <dialog id="gross"></dialog>
   <script src="maplibre/maplibre-gl-csp.js?v=6.24.0"></script>
-  <script type="module" src="app.js?v=9"></script>
+  <script type="module" src="app.js?v=10"></script>
 </body>
 </html>

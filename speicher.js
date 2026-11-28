@@ -9,8 +9,15 @@
  * Damit holt ein älteres Backup sie nicht zurück (KONZEPT-WEBAPP.md 12.8). Rücknahmen (Import, leerer neuer Platz) vermerken nichts.
  * Jede Änderung läuft in einer Transaktion und zählt die Änderungen seit dem letzten Backup mit.
  */
-const NAME = "frag-herbert", FASSUNG = 1;
-const kanal = "BroadcastChannel" in window ? new BroadcastChannel("frag-herbert") : null;
+/*
+ * Zwei Bestände in getrennten Datenbanken (KONZEPT-WEBAPP.md 12.2.1): „lokal“ (Vorgabe) und „ha“ = Kopie des Stands aus Home Assistant.
+ * Der HA-Bestand ist in Stufe 1 nur zum Lesen: schreibend() lehnt ab, nur haUebernehmen() und bildMerken() schreiben dort.
+ * Gewählt wird vor dem Laden (localStorage); umschalten = Seite neu laden.
+ */
+export const BESTAND = (() => { try { return localStorage.getItem("herbert-bestand") === "ha" ? "ha" : "lokal"; } catch (e) { return "lokal"; } })();
+export const NUR_LESEN = "Die Plätze aus Home Assistant werden in der Camper-App bearbeitet.";
+const NAME = BESTAND === "ha" ? "frag-herbert-ha" : "frag-herbert", FASSUNG = 1;
+const kanal = "BroadcastChannel" in window ? new BroadcastChannel(NAME) : null;
 let dbVersprechen = null;
 
 const warten = (anfrage) => new Promise((ok, f) => { anfrage.onsuccess = () => ok(anfrage.result); anfrage.onerror = () => f(anfrage.error); });
@@ -72,6 +79,7 @@ const jetzt = () => new Date().toISOString();
 
 /** Schreiben mit Zähler und Meldung an andere Fenster. */
 async function schreibend(namen, fn) {
+  if (BESTAND === "ha") throw new Error(NUR_LESEN);
   const r = await transaktion([...new Set([...namen, "meta"])], "readwrite", async (s) => {
     const e = await fn(s);
     await zaehlen(s.meta);
@@ -242,6 +250,26 @@ export const speicher = {
     for (const { f, g, v } of rueck.fotosWeg) { s.fotos.put(f); if (g) s.bilder.put(g, `${f.id}|g`); if (v) s.bilder.put(v, `${f.id}|v`); }
     await warten(s.meta.put(rueck.vermerke, "grabsteine"));
   }),
+
+  /**
+   * Stand aus HA übernehmen (nur im HA-Bestand): Plätze und Fotos ganz ersetzen; schon geholte Bilder bleiben, solange es das Foto noch gibt.
+   * Kein Änderungszähler (keine eigenen Änderungen, nichts zu sichern).
+   */
+  async haUebernehmen({ plaetze, fotos, gelesen }) {
+    if (BESTAND !== "ha") throw new Error("Nur im Bestand aus Home Assistant");
+    await transaktion(["plaetze", "fotos", "bilder", "meta"], "readwrite", async (s) => {
+      const bleiben = new Set(fotos.map((f) => f.id));
+      for (const k of await warten(s.bilder.getAllKeys())) if (!bleiben.has(String(k).split("|")[0])) s.bilder.delete(k);
+      s.plaetze.clear();
+      s.fotos.clear();
+      for (const p of plaetze) s.plaetze.put(p);
+      for (const f of fotos) s.fotos.put(f);
+      await warten(s.meta.put(gelesen, "ha-gelesen"));
+    });
+    kanal?.postMessage("geaendert");
+  },
+  /** Aus HA geholtes Bild ablegen (Zwischenspeicher für offline). */
+  bildMerken: (schluessel, daten) => transaktion(["bilder"], "readwrite", (s) => warten(s.bilder.put(daten, schluessel))),
 
   meta: (schluessel) => transaktion(["meta"], "readonly", (s) => warten(s.meta.get(schluessel))),
   /** stand = Änderungszähler beim Erstellen: was danach geändert wurde, zählt weiter als ungesichert. */

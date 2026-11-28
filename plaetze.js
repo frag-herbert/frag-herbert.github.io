@@ -79,7 +79,8 @@ export function neuerBesuch({ ankunft, abfahrt = null, ganztags = false }) {
 export function aufbereiten(p, fotos) {
   const besuche = p.besuche.filter((b) => !b.weg).sort((a, b) => a.ankunft.localeCompare(b.ankunft));
   const liste = besuche.map((b) => {
-    const naechte = kalendernaechte(b).map((n) => ({ nacht: n, art: b.naechte[n] === "aussen" ? "aussen" : "im" }));
+    // Wirksam je Nacht: Handangabe vor Ergebnis aus HA (naechte_auto) vor „im“ (KONZEPT-WEBAPP.md 12.2)
+    const naechte = kalendernaechte(b).map((n) => ({ nacht: n, art: (b.naechte[n] || b.naechte_auto?.[n]) === "aussen" ? "aussen" : "im" }));
     return { id: b.id, ankunft: b.ankunft, abfahrt: b.abfahrt, ganztags: b.ganztags, naechte_liste: naechte,
       naechte: naechte.filter((n) => n.art === "im").length, geparkt: naechte.filter((n) => n.art === "aussen").length };
   });
@@ -139,6 +140,8 @@ export function koordinatenLesen(text) {
 
 // ---------------------------------------------------------------- Fremde Daten prüfen (Backup, Import)
 
+/** { Abend: "im" | "aussen" } aus fremden Daten; „im“ zählt nur gegen ein abweichendes Ergebnis aus HA. */
+const nachtListe = (x) => Object.fromEntries(Object.entries(x && typeof x === "object" ? x : {}).filter(([n, w]) => /^\d{4}-\d{2}-\d{2}$/.test(n) && (w === "im" || w === "aussen")).slice(0, 1000));
 const istId = (x) => typeof x === "string" && /^[A-Za-z0-9:_-]{1,64}$/.test(x);
 const ZEIT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
 const text = (x, max) => (typeof x === "string" ? x.replace(/[\u0000-\u0008\u000b-\u001f]/g, "").slice(0, max) : "");
@@ -159,7 +162,7 @@ export function platzPruefen(x) {
     const ankunft = zeitpunkt(b?.ankunft), abfahrt = zeitpunkt(b?.abfahrt);
     if (!ankunft || !istId(b.id)) continue;
     p.besuche.push({ id: b.id, ankunft, abfahrt: abfahrt && abfahrt >= ankunft ? abfahrt : null, ganztags: b.ganztags === true, t: zeitpunkt(b.t) || t0, weg: b.weg === true,
-      naechte: Object.fromEntries(Object.entries(b.naechte && typeof b.naechte === "object" ? b.naechte : {}).filter(([n, w]) => /^\d{4}-\d{2}-\d{2}$/.test(n) && w === "aussen").slice(0, 1000)) });
+      naechte: nachtListe(b.naechte), ...(b.naechte_auto ? { naechte_auto: nachtListe(b.naechte_auto) } : {}) });
   }
   return p;
 }

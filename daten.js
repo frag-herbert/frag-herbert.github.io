@@ -1,9 +1,10 @@
 /*
  * Datenschicht: liest und schreibt die lokale Datenbank (speicher.js) und liefert der Oberfläche fertige Plätze (plaetze.js).
- * Später kommt hier der Abgleich mit Home Assistant dazu (nur wenn eine Adresse eingetragen ist).
+ * Im Bestand „ha“ (Kopie aus Home Assistant, nur lesen) kommen fehlende Bilder bei Bedarf aus HA (ha.js).
  */
-import { speicher } from "./speicher.js?v=9";
-import { aufbereiten, neuerBesuch, neuerPlatz, neueId, platzBei, setzen, jetztIso, lokal, PAPIERKORB_TAGE } from "./plaetze.js?v=9";
+import { speicher, BESTAND } from "./speicher.js?v=10";
+import { ha } from "./ha.js?v=10";
+import { aufbereiten, neuerBesuch, neuerPlatz, neueId, platzBei, setzen, jetztIso, lokal, PAPIERKORB_TAGE } from "./plaetze.js?v=10";
 
 export const APP_URL = new URL("./", location.href).href.split(/[?#]/)[0];
 export const SPEICHER = { ansicht: "herbert-ansicht", hinweise: "herbert-hinweise" };
@@ -18,9 +19,11 @@ export const quelle = {
   async daten() {
     const { plaetze, fotos } = await speicher.alles();
     const grenze = new Date(Date.now() - PAPIERKORB_TAGE * 864e5).toISOString();
-    for (const p of plaetze) if (p.geloescht && p.geloescht < grenze) await speicher.platzEntfernen(p.id, true); // vermerkt: kommt aus alten Backups nicht zurück
+    // vermerkt: kommt aus alten Backups nicht zurück. Im HA-Bestand räumt HA selbst auf
+    if (BESTAND === "lokal") for (const p of plaetze) if (p.geloescht && p.geloescht < grenze) await speicher.platzEntfernen(p.id, true);
     const da = plaetze.filter((p) => !p.geloescht).map((p) => aufbereiten(p, fotos));
     const korb = plaetze.filter((p) => p.geloescht && p.geloescht >= grenze).sort((a, b) => b.geloescht.localeCompare(a.geloescht)).map((p) => ({ id: p.id, name: p.name || "Ohne Namen", geloescht: p.geloescht }));
+    if (BESTAND === "ha") return { plaetze: da, papierkorb: [], ha: true, gelesen: await speicher.meta("ha-gelesen"), aenderungen: 0 };
     return { plaetze: da, papierkorb: korb, backup: await speicher.meta("backup"), aenderungen: (await speicher.meta("aenderungen")) || 0 };
   },
 
@@ -83,7 +86,7 @@ export const quelle = {
   bild(schluessel) {
     if (!schluessel) return Promise.resolve(null);
     if (!adressen.has(schluessel)) {
-      const v = speicher.bild(schluessel).then((b) => (b ? URL.createObjectURL(b) : null));
+      const v = speicher.bild(schluessel).then((b) => b || (BESTAND === "ha" ? ha.bildHolen(schluessel).catch(() => null) : null)).then((b) => (b ? URL.createObjectURL(b) : null));
       adressen.set(schluessel, v);
       v.then((u) => { if (!u) adressen.delete(schluessel); }, () => adressen.delete(schluessel));
     }

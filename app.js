@@ -4,20 +4,23 @@
  * Statische Seite ohne Server: alle Daten liegen in der Datenbank des Browsers (speicher.js). daten.js = Datenschicht, plaetze.js = Rechenregeln,
  * backup.js + zip.js = Sichern und Einspielen, karte.js + kartenstil.js = Karte (MapLibre), blatt.js = Bedienfeld/ziehbares Blatt.
  */
-import { icon } from "./icons.js?v=9";
-import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=9";
-import { speicher } from "./speicher.js?v=9";
-import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=9";
-import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=9";
-import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=9";
-import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=9";
-import { Karte } from "./karte.js?v=9";
-import { EBENEN } from "./kartenstil.js?v=9";
-import { Blatt } from "./blatt.js?v=9";
-import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=9";
+import { icon } from "./icons.js?v=10";
+import { quelle, lesen, schreiben, SPEICHER, APP_URL } from "./daten.js?v=10";
+import { speicher, BESTAND, NUR_LESEN } from "./speicher.js?v=10";
+import { ha } from "./ha.js?v=10";
+import { backupErstellen, backupLesen, backupEinspielen, backupUebernehmen, kmlErstellen } from "./backup.js?v=10";
+import { dateiLesen, fotosLesen, auswerten } from "./import.js?v=10";
+import { abgleichen, aufloesen, folgefragen, entfernungen, FELDNAMEN } from "./abgleich.js?v=10";
+import { km, koordinatenLesen, lokal, tagVon, letzteAenderung, PREIS_MAX, UMKREIS_KM, PAPIERKORB_TAGE } from "./plaetze.js?v=10";
+import { Karte } from "./karte.js?v=10";
+import { EBENEN } from "./kartenstil.js?v=10";
+import { Blatt } from "./blatt.js?v=10";
+import { DATENSCHUTZ, LIZENZEN } from "./info.js?v=10";
 
-const VERSION = "0.8.0";
+const VERSION = "0.9.0";
 const TESTVERSION = VERSION.startsWith("0."); // bis 1.0: Hinweis beim Start, frühere Backup-Erinnerung
+const HA = BESTAND === "ha"; // Kopie aus Home Assistant, nur lesen (KONZEPT-WEBAPP.md 12.2.1)
+const HA_NEU_MIN = 10; // so lange nach dem letzten Holen holt die App beim Zurückkehren erneut
 const ERINNERN_TAGE = TESTVERSION ? 7 : 14; // Backup-Erinnerung frühestens so lange nach dem letzten Backup
 
 // Symbole = Namen aus icons.js (Material Design Icons, wie in der HA-Karte)
@@ -105,6 +108,10 @@ const app = {
     this.ansicht.arten = this.ansicht.arten.filter((a) => ART_SYMBOL[a]);
     // Rückkehr von „App-Dateien neu laden“ (?r=…): Adresse wieder sauber
     if (new URLSearchParams(location.search).has("r")) history.replaceState(null, "", APP_URL + location.hash);
+    document.documentElement.classList.toggle("nurlesen", HA);
+    ha.aufraeumen();
+    // Rückkehr von der Anmeldung bei Home Assistant (?code=…): verbunden → zum HA-Bestand wechseln
+    try { if (await ha.rueckkehr()) return ha.wechseln("ha"); } catch (e) { this.haFehler = e.message; }
     if ("serviceWorker" in navigator) this.updatesEinrichten();
     this.abstandMessen();
     this.steuerungAufbauen();
@@ -114,7 +121,14 @@ const app = {
     this.karteAufbauen();
     this.zeichnen();
     await this.laden();
-    const nachladen = () => { if (document.visibilityState === "visible") { this.laden(); this.standortHolen(); } };
+    if (this.haFehler) this.meldung(this.haFehler, true);
+    if (HA) this.haHolen(true);
+    const nachladen = () => {
+      if (document.visibilityState !== "visible") return;
+      this.laden();
+      this.standortHolen();
+      if (HA && Date.now() - (this.haZuletzt || 0) > HA_NEU_MIN * 60000) this.haHolen(true);
+    };
     document.addEventListener("visibilitychange", nachladen);
     this.standortHolen();
   },
@@ -165,6 +179,10 @@ const app = {
   /** Hinweis über der Liste: erst Installation (Datenverlust droht), dann Backup. Beides lässt sich für eine Weile ausblenden. */
   hinweisWaehlen() {
     const d = this.daten, aus = lesen(SPEICHER.hinweise, {}), ruhe = (k) => (aus[k] || 0) > Date.now();
+    if (HA) {
+      if (!ha.verbunden) return this.hinweis("Die Anmeldung bei Home Assistant ist abgelaufen.", false, { text: "Verbinden", tun: () => this.haVerbindenZeigen(), ruhe: "ha-anmeldung", tage: 1 });
+      return this.hinweis(null);
+    }
     if (!d.plaetze.length) return this.hinweis(null);
     // Offener Besuch von gestern oder früher, obwohl das Gerät woanders ist (oder der Ort unbekannt): sonst zählen die Nächte endlos weiter
     const heute = tagVon(new Date());
@@ -292,7 +310,8 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
   // ------------------------------------------------------------ Route (#/platz/<id>[/bearbeiten])
 
   routeLesen(zeichnen = true) {
-    const m = location.hash.match(/^#\/platz\/([^/]+)(\/bearbeiten)?/);
+    let m = location.hash.match(/^#\/platz\/([^/]+)(\/bearbeiten)?/);
+    if (HA && m?.[2]) { history.replaceState(null, "", `${APP_URL}#/platz/${m[1]}`); m = [m[0], m[1]]; }
     const vorher = this.route;
     this.route = { platz: m ? decodeURIComponent(m[1]) : null, bearbeiten: !!m?.[2] };
     if (this.blatt && !this.blatt.breit) {
@@ -352,6 +371,9 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
         window.open(nav.dataset.nav, "_blank", "noopener");
       } else if (e.target.closest("[data-neu]")) this.neuZeigen();
       else if (e.target.closest("[data-import]")) this.importZeigen();
+      else if (e.target.closest("[data-ha-holen]")) this.haHolen();
+      else if (e.target.closest("[data-ha-verbinden]")) this.haVerbindenZeigen();
+      else if (e.target.closest("[data-bestand-lokal]")) ha.wechseln("lokal");
       else if (e.target.closest("[data-installieren]")) this.installationZeigen();
       else if (e.target.closest("[data-zuruecksetzen]")) {
         Object.assign(this.ansicht, structuredClone(FILTER_LEER), { text: "" });
@@ -448,12 +470,13 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
     d.innerHTML = `<div class="f-kopf"><h2 tabindex="-1" autofocus>Einstellungen</h2><button class="rund" data-zu aria-label="Schließen">${icon("close")}</button></div><div class="f-rollen">
       <div><div class="ueber">Darstellung</div><div class="segmente" id="m-darstellung">${[["auto", "Automatisch"], ["hell", "Hell"], ["dunkel", "Dunkel"]].map(([k, t]) =>
         `<button data-darstellung="${k}" class="${this.ansicht.darstellung === k ? "an" : ""}">${t}</button>`).join("")}</div></div>
-      <div><div class="ueber">Deine Daten</div><div class="block">
+      ${this.haBlockHtml()}
+      ${HA ? "" : `<div><div class="ueber">Deine Daten</div><div class="block">
         <div class="zeile"><span>${plural(n, "Platz", "Plätze")}, ${plural(fotos, "Foto", "Fotos")}<small>Liegt nur auf diesem Gerät, niemand sonst kann es sehen.</small></span></div>
         <div class="zeile"><span>Backup und Export<small>${this.daten?.backup ? `zuletzt ${uhrzeit(this.daten.backup)}${this.daten.aenderungen ? ", seitdem geändert" : ", aktuell"}` : "noch keines erstellt"}</small></span>
           <button class="knopf flach" id="m-backup" ${n || korb.length ? "" : "disabled"}>Exportieren</button></div>
         <div class="zeile"><span>Importieren<small>Backup, GPX, KML, GeoJSON, CSV, Google Maps, Fotos mit Ort</small></span><button class="knopf flach" id="m-import">Auswählen</button></div>
-        ${ios && !installiert() ? `<div class="zeile"><span>Auf den Home-Bildschirm<small>Schützt deine Daten besser als der Browser.</small></span><button class="knopf flach" id="m-install">So geht’s</button></div>` : ""}</div></div>
+        ${ios && !installiert() ? `<div class="zeile"><span>Auf den Home-Bildschirm<small>Schützt deine Daten besser als der Browser.</small></span><button class="knopf flach" id="m-install">So geht’s</button></div>` : ""}</div></div>`}
       ${korb.length ? `<div><div class="ueber">Papierkorb (${PAPIERKORB_TAGE} Tage)</div><div class="block">${korb.map((k) => `<div class="zeile"><span>${esc(k.name)}<small>gelöscht am ${datum(k.geloescht)}</small></span>
         <button class="knopf flach" data-wieder="${esc(k.id)}">Zurückholen</button></div>`).join("")}</div></div>` : ""}
       <div><div class="ueber">App</div><div class="block">
@@ -471,8 +494,9 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
       this.darstellungSetzen(b.dataset.darstellung);
       d.querySelectorAll("[data-darstellung]").forEach((x) => x.classList.toggle("an", x === b));
     };
-    $("#m-backup").onclick = () => { d.close(); this.backupZeigen(); };
-    $("#m-import").onclick = () => { d.close(); this.importZeigen(); };
+    if ($("#m-backup")) $("#m-backup").onclick = () => { d.close(); this.backupZeigen(); };
+    if ($("#m-import")) $("#m-import").onclick = () => { d.close(); this.importZeigen(); };
+    this.haBlockVerdrahten(d);
     if ($("#m-install")) $("#m-install").onclick = () => this.installationZeigen();
     d.querySelectorAll("[data-info]").forEach((b) => (b.onclick = () => this.infoZeigen(b.dataset.info)));
     $("#m-update").onclick = async (e) => {
@@ -491,6 +515,66 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
       if (await this.frage({ titel: "App-Dateien neu laden?", text: "Die App wird frisch geladen. Plätze, Fotos und Karten bleiben erhalten.", knopf: "Neu laden" })) this.appNeuLaden();
     };
     d.querySelectorAll("[data-wieder]").forEach((b) => (b.onclick = async () => { await this.aktion(() => quelle.wiederherstellen(b.dataset.wieder), b, this.formularOffen() ? undefined : platzLink(b.dataset.wieder)); d.close(); }));
+  },
+
+  // ------------------------------------------------------------ Home Assistant (KONZEPT-WEBAPP.md 12.2.1, Stufe 1: nur lesen)
+
+  /** Abschnitt in den Einstellungen: verbinden, Bestand wählen, holen, abmelden. */
+  haBlockHtml() {
+    const zeile = (titel, klein, knopf) => `<div class="zeile"><span>${titel}<small>${klein}</small></span>${knopf}</div>`;
+    if (!ha.adresse && !HA) {
+      return `<div><div class="ueber">Home Assistant</div><div class="block">${zeile("Mit Home Assistant verbinden", "Nur mit eigener Home-Assistant-Installation und der Integration „Frag Herbert“.",
+        `<button class="knopf flach" id="m-ha-verbinden">Verbinden</button>`)}</div></div>`;
+    }
+    const n = this.daten?.plaetze.length || 0, stand = this.daten?.gelesen ? `Stand ${uhrzeit(this.daten.gelesen)}` : "noch nicht geholt";
+    return `<div><div class="ueber">Plätze</div><div class="segmente" id="m-bestand">
+        <button data-bestand="lokal" class="${HA ? "" : "an"}">Auf diesem Gerät</button><button data-bestand="ha" class="${HA ? "an" : ""}">Home Assistant</button></div></div>
+      <div><div class="ueber">Home Assistant</div><div class="block">
+        ${HA ? zeile(`${plural(n, "Platz", "Plätze")} aus Home Assistant`, `${stand}. Nur zum Ansehen, bearbeitet wird in der Camper-App.`, `<button class="knopf flach" id="m-ha-holen" ${ha.verbunden ? "" : "disabled"}>Jetzt holen</button>`) : ""}
+        ${ha.verbunden ? zeile("Verbunden", esc(ha.adresse), `<button class="knopf flach" id="m-ha-abmelden">Abmelden</button>`)
+          : zeile("Nicht angemeldet", esc(ha.adresse || ""), `<button class="knopf flach" id="m-ha-verbinden">Verbinden</button>`)}</div></div>`;
+  },
+  haBlockVerdrahten(d) {
+    const k = (id, fn) => { const b = d.querySelector(id); if (b) b.onclick = fn; };
+    k("#m-ha-verbinden", () => this.haVerbindenZeigen());
+    k("#m-ha-holen", async (e) => { e.currentTarget.disabled = true; await this.haHolen(); if ($("#menue").open) this.menueZeichnen(); });
+    k("#m-ha-abmelden", async () => {
+      if (await this.frage({ titel: "Von Home Assistant abmelden?", text: "Die Kopie der Plätze aus Home Assistant wird von diesem Gerät gelöscht. In Home Assistant ändert sich nichts.", knopf: "Abmelden", warnung: true })) ha.abmelden();
+    });
+    const seg = d.querySelector("#m-bestand");
+    if (seg) seg.onclick = (e) => { const b = e.target.closest("[data-bestand]"); if (b && b.dataset.bestand !== BESTAND) ha.wechseln(b.dataset.bestand); };
+  },
+  /** Adresse eingeben und zur Anmeldeseite von HA. */
+  haVerbindenZeigen() {
+    const d = $("#frage");
+    d.innerHTML = `<div class="f-kopf"><h2 tabindex="-1" autofocus>Mit Home Assistant verbinden</h2></div><div class="f-rollen">
+      <p class="grau">Die Plätze aus deiner Home Assistant erscheinen dann hier, nur zum Ansehen und auch offline. Deine Plätze auf diesem Gerät bleiben getrennt davon erhalten.</p>
+      <div class="formular schlicht"><label class="feld"><span class="ueber">Adresse von Home Assistant</span><input id="ha-adresse" type="url" inputmode="url" autocomplete="url" placeholder="https://…" value="${esc(ha.adresse || "")}"></label></div>
+      <p class="grau klein">Du meldest dich auf der Seite von Home Assistant an. Dort braucht es die Integration „Frag Herbert“ und diese App in „cors_allowed_origins“.</p></div>
+      <div class="f-fuss"><button class="knopf" value="nein">Abbrechen</button><button class="knopf haupt" style="flex:1" value="ja">Anmelden</button></div>`;
+    d.returnValue = "nein";
+    d.onclick = (e) => {
+      const b = e.target.closest("button");
+      if (b?.value === "nein" || e.target === d) return d.close();
+      if (b?.value !== "ja") return;
+      try { ha.anmelden($("#ha-adresse").value); } catch (x) { this.meldung(x.message, true); }
+    };
+    d.showModal();
+  },
+  /** Stand aus HA holen und neu zeichnen. still: Fehler nur als kurze Meldung, ohne Erfolgsmeldung (Start, Zurückkehren). */
+  async haHolen(still = false) {
+    if (!HA || !ha.verbunden || this.haLaeuft) return;
+    if (!navigator.onLine) { if (!still) this.meldung("Keine Verbindung – es gilt der zuletzt geholte Stand."); return; }
+    this.haLaeuft = true;
+    try {
+      const z = await ha.standHolen();
+      this.haZuletzt = Date.now();
+      await this.laden();
+      if (!still) this.meldung(`${plural(z.plaetze, "Platz", "Plätze")} aus Home Assistant geholt`);
+    } catch (e) {
+      this.meldung(e.message, true);
+      this.hinweisWaehlen();
+    } finally { this.haLaeuft = false; }
   },
 
   /** Datenschutz oder Lizenzen (info.js), über den Einstellungen. */
@@ -917,6 +1001,12 @@ Die App dort hat einen eigenen Speicher. Plätze aus dem Browser nimmst du mit e
   },
 
   willkommenHtml() {
+    if (HA) {
+      return `<div class="willkommen"><img src="icon-192.png?v=13" alt=""><h2>Plätze aus Home Assistant</h2>
+        <p>${ha.verbunden ? (this.haLaeuft ? "Wird geholt …" : "Noch nichts geholt.") : "Nicht angemeldet."}</p>
+        ${ha.verbunden ? `<button class="knopf haupt" data-ha-holen>Jetzt holen</button>` : `<button class="knopf haupt" data-ha-verbinden>Verbinden</button>`}
+        <button class="knopf zart" data-bestand-lokal>Zu den Plätzen auf diesem Gerät</button></div>`;
+    }
     return `<div class="willkommen"><img src="icon-192.png?v=13" alt=""><h2>Frag Herbert</h2><p>Dein Stellplatzbuch: Plätze sammeln, beschreiben und wiederfinden.<br>Alles bleibt auf deinem Gerät.</p>
       ${TESTVERSION ? `<p class="grau klein"><b>Testversion ${VERSION}</b> – Funktionen können sich noch ändern. Bitte regelmäßig ein Backup machen (Einstellungen → Exportieren).</p>` : ""}
       ${ios && !installiert() ? `<div class="aufruf">${icon("information-outline")}<span>Bitte zuerst auf den Home-Bildschirm legen, sonst kann Safari deine Plätze später löschen.</span><button class="knopf flach" data-installieren>So geht’s</button></div>` : ""}

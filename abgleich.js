@@ -12,7 +12,7 @@
  *   geloescht auf einer Seite gelöscht, auf der anderen danach geändert   wiederherstellen · loeschen
  *   besuch    neuer Besuch überschneidet sich mit einem vorhandenen  beide · zusammen
  */
-import { FELDER, AUSSTATTUNG_KEYS, UMKREIS_KM, km, letzteAenderung, jetztIso, tagVon } from "./plaetze.js?v=9";
+import { FELDER, AUSSTATTUNG_KEYS, UMKREIS_KM, km, letzteAenderung, jetztIso, tagVon } from "./plaetze.js?v=10";
 
 const gleich = (a, b) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 const leer = (k, w) => w === null || w === undefined || w === "" || w === false || w === 0 && k === "bewertung" || (Array.isArray(w) && !w.length);

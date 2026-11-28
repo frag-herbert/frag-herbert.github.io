@@ -13,6 +13,7 @@ gesichert wird mit einer Backup-Datei. Ohne Build-Werkzeug, ohne Fremdskripte (M
 | `backup.js`, `zip.js` | Backup erstellen, prüfen, einspielen |
 | `abgleich.js` | Abgleich eines Imports mit dem Bestand: Gruppen, Fragen, Auflösen (Regeln ohne Oberfläche) |
 | `import.js` | GPX, KML/KMZ, GeoJSON, Google Takeout, CSV, Fotos mit GPS → geprüfte Vorschau, rückgängig machbar |
+| `ha.js` | Verbindung zu Home Assistant: Anmeldung, Stand holen, Bilder (nur lesen, siehe unten) |
 | `info.js` | Texte Datenschutz und Lizenzen (Einstellungen) |
 | `sw.js` | Offline: App-Dateien, angesehene Kartenkacheln |
 
@@ -41,6 +42,19 @@ Tester haben echte Daten in ihrem Browser. Jede neue Version muss Datenbank und 
 - **Backup** (`backup.js`, `FASSUNG`): neue Felder sind erlaubt, solange ältere Versionen sie übergehen können. Ändert sich die Bedeutung
   eines Feldes, Fassung erhöhen; ältere Fassungen werden weiter eingelesen. Ein Backup aus einer neueren Fassung lehnt die App mit Hinweis ab.
 - Vor jeder Veröffentlichung: `tools/uebergang.py <zuletzt veröffentlichter Commit>`.
+
+## Home Assistant (optional, nur lesen)
+
+Wer eine eigene Home Assistant mit der Integration `frag_herbert` hat, kann sich unter Einstellungen → Home Assistant verbinden.
+
+- Anmeldung über die Anmeldeseite von HA (OAuth, `client_id` = Adresse der App); Token nur in diesem Browser.
+- `GET <HA>/api/frag_herbert/stand` (ganzer Stand im Datenformat unten, `quelle: "ha"`) und `…/foto/<ID>[?groesse=vorschau]`, beide mit Token.
+  Die Adresse der App muss in HA unter `cors_allowed_origins` stehen.
+- Die Plätze aus HA liegen in einer **eigenen Datenbank** (`frag-herbert-ha`); umschalten unter Einstellungen → Plätze (lädt neu).
+  Dort ist alles nur zum Ansehen: Bearbeiten ist ausgeblendet, `speicher.js` lehnt jedes Schreiben ab.
+- Nächte: `naechte` (von Hand) vor `naechte_auto` (aus den Messungen in HA) vor „Übernachtung“.
+- Test: `tools/test.py` startet `tools/server.py` mit einer HA-Attrappe (`HERBERT_HA_ATTRAPPE`).
+- Schreiben nach HA kommt später (Abgleich mit Stand-Nummer und Warteschlange).
 
 ## Lizenz
 
